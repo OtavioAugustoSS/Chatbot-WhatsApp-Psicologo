@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from core.config import settings
-from services.whatsapp import extrair_informacoes_mensagem
+from services.whatsapp import extrair_informacoes_mensagem, WhatsAppSender
+from services.state_machine import StateMachine
 from db.database import get_db
 from sqlalchemy.orm import Session
-# from db.models import User, EstadoUsuario # Importaremos quando fizermos a máquina de estados completa
 
 router = APIRouter()
 
@@ -38,6 +38,9 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
 
     mensagens = extrair_informacoes_mensagem(body)
     
+    whatsapp = WhatsAppSender()
+    state_machine = StateMachine(db, whatsapp)
+    
     for msg in mensagens:
         tipo = msg.get("tipo")
         telefone = msg.get("telefone")
@@ -47,15 +50,18 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
         
         # Filtro de LGPD - Tratar Áudio e Documentos aqui
         if tipo in ["image", "audio", "document", "video", "sticker"]:
-            # TODO: Enviar resposta padrão sobre LGPD e salvar o estado atual se necessário
-            # Ex: whatsapp_sender.enviar_mensagem(telefone, "Recebi seu áudio/arquivo! Como sou apenas o assistente virtual...")
             print(f"[{telefone}] BLOQUEADO TIPO MÍDIA - Retornar msg de LGPD.")
+            msg_lgpd = (
+                "Recebi seu arquivo/áudio! 🤖\nComo sou apenas o assistente virtual, "
+                "peço que guarde esses detalhes em texto ou compartilhe diretamente "
+                "com o Dr. Itallo no momento da sua sessão.\n\n"
+                "Para continuarmos nosso agendamento, por favor, me envie apenas mensagens de *texto*."
+            )
+            whatsapp.enviar_mensagem_texto(telefone, msg_lgpd)
             continue
         
-        if tipo == "text":
-            # TODO: Processar a máquina de estado do usuário
-            # Buscar user db
-            # Jogar na state_machine.processar(user, texto)
+        if tipo == "text" and texto:
             print(f"[{telefone}] TEXTO RECEBIDO. Prosseguir para máquina de estados.")
+            state_machine.processar_mensagem(telefone, texto)
         
     return {"status": "ok"}

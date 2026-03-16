@@ -1,3 +1,4 @@
+import requests
 from core.config import settings
 
 def extrair_informacoes_mensagem(payload: dict) -> list:
@@ -44,4 +45,28 @@ class WhatsAppSender:
             "Content-Type": "application/json"
         }
     
-    # Adicionaremos aqui futuramente o def enviar_mensagem(self, telefone, texto):
+    def enviar_mensagem_texto(self, telefone: str, texto: str):
+        """
+        Envia uma mensagem de texto simples para um número de telefone informado.
+        """
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": telefone,
+            "type": "text",
+            "text": {
+                "preview_url": False,
+                "body": texto
+            }
+        }
+        
+        try:
+            resposta = requests.post(self.url, headers=self.headers, json=payload)
+            resposta.raise_for_status()
+            print(f"Mensagem enviada para {telefone}: {texto[:30]}...")
+            return True
+        except Exception as e:
+            print(f"Erro ao enviar mensagem para {telefone}: {e}")
+            if hasattr(e, 'response') and e.response:
+                print(e.response.text)
+            return False

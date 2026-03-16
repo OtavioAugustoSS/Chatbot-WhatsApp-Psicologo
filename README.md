@@ -84,4 +84,9 @@ npx localtunnel --port 8000 --subdomain testepsicologo
 3. Insira lá no painel também o mesmo `WEBHOOK_VERIFY_TOKEN` que você salvou no `.env`.
 4. Valide o Webhook e clique em **Gerenciar campos**, assinando o canal **`messages`**.
 
+⚠️ **ATENÇÃO AOS BLOQUEIOS FREQUENTES:**
+  - **Senha do Localtunnel:** Após rodar o comando 1, o site loca.lt agora bloqueia conexões via webhooks por razões de segurança, apresentando uma tela que exige uma *"Tunnel Password"*. A senha solicitada é o seu **IP Local** atual. Você deve acessar essa URL [https://loca.lt/mytunnelpassword](https://loca.lt/mytunnelpassword), copiar a sequência, acessar o seu link e destrancar a porta, caso contrário o Meta não conseguirá entregar mensagens ao sistema.
+  - **Tokens Expiram em 24h:** O `WHATSAPP_TOKEN` temporário gerado no painel da Meta expira rotineiramente a cada 24 horas. Se você começar a observar *Erro 400 (Bad Request)* ou *Erro 10 (OAuthException)* nos logs do console, substitua o Token no arquivo `.env`. Logo após salvar, lembre-se de **reiniciar o servidor Uvicorn** (CTRL+C e rode novamente), pois as variáveis do `.env` só são injetadas no momento do boot.
+  - **Telefones de Teste:** Enquanto o aplicativo não for oficial/produção, você só pode enviar e receber mensagens de números cadastrados manualmente na seção de Desenvolvedores da Meta.
+
 Pronto! Seu Chatbot determinístico e voltado para privacidade na área da saúde estará conversando ativamente de acordo com os dados no MySQL.

@@ -21,8 +21,8 @@ class StateMachine:
         estado = user.estado_atual
         texto = texto.strip().lower()
 
-        # Independente de onte estiver, se digitar algo como voltar/cancelar, volta pro menu
-        if texto in ["voltar", "cancelar", "menu"]:
+        # Independente de onde estiver, se digitar algo como voltar/cancelar/oi, volta pro menu inicial
+        if texto in ["voltar", "cancelar", "menu", "oi", "olá", "ola", "start", "começar"]:
             user.estado_atual = EstadoUsuario.MENU_INICIAL
             self.db.commit()
             self._enviar_menu_inicial(telefone)

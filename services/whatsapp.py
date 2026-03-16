@@ -71,8 +71,8 @@ class WhatsAppSender:
             return True
         except Exception as e:
             print(f"Erro ao enviar mensagem para {telefone}: {e}")
-            if hasattr(e, 'response') and e.response:
-                print(e.response.text)
+            if hasattr(e, 'response') and e.response is not None:
+                print("Detalhes do Erro do Meta:", e.response.text)
             return False
 
     def enviar_mensagem_botoes(self, telefone: str, texto: str, botoes: list):
@@ -113,6 +113,6 @@ class WhatsAppSender:
             return True
         except Exception as e:
             print(f"Erro ao enviar botões para {telefone}: {e}")
-            if hasattr(e, 'response') and e.response:
-                print(e.response.text)
+            if hasattr(e, 'response') and e.response is not None:
+                print("Detalhes do Erro do Meta:", e.response.text)
             return False

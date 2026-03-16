@@ -1,1 +1,87 @@
-# Chatbot-WhatsApp-Psicologo
+# Chatbot WhatsApp - Psicólogo (Dr. Itallo Barcelos de Lima)
+
+Este é um projeto de chatbot de autoatendimento construído em Python, concebido para automatizar as interações preliminares do consultório de psicologia via WhatsApp.
+
+O foco deste bot é ser **100% determinístico** utilizando uma Máquina de Estados (State Machine) e menus de opções no formato de Botões Interativos (Interactive Buttons), garantindo um fluxo controlado, sem a imprevisibilidade de Inteligências Artificiais ou LLMs.
+
+---
+
+## 🚀 Tecnologias e Arquitetura
+
+- **Linguagem:** Python 3.13+
+- **Framework Web:** FastAPI (com Uvicorn)
+- **Banco de Dados:** MySQL 8.0+
+- **ORM:** SQLAlchemy (usando `pymysql` e `cryptography`)
+- **Mensageria:** API Oficial do Meta (WhatsApp Cloud API) via modelo de Webhooks.
+
+> **Arquitetura modular:** O código isola a lógica de negócio (State Machine) das rotas HTTP (Webhook), permitindo que a mesma máquina de estados atenda a outras integrações no futuro (como a API do Telegram).
+
+---
+
+## 📋 Escopos e Funcionalidades Implementadas
+
+### 1. Protocolo de Segurança e Acolhimento
+A primeira interação do cliente em um chat recém-criado obrigatoriamente gera um retorno humanizado e protetivo contendo as políticas de contenção de crise e recomendação do Centro de Valorização da Vida (CVV).
+
+### 2. Menu Principal (Interativo)
+Após a saudação, o bot apresenta três botões de ação na tela do WhatsApp:
+- **1ª Consulta:** Direciona para o fluxo de captação de Leads.
+- **Já sou paciente:** Prepara terreno para reagendamentos futuros.
+- **Dúvidas Frequentes:** Encaminha para o F.A.Q.
+
+### 3. Fluxo de Triagem (Leads)
+Coleta, passo a passo, os dados vitais para os novos pacientes (Nome -> Preferência Online/Presencial -> Melhores Dias). Toda interação e progressão de estado é registrada automaticamente nas tabelas do MySQL.
+
+### 4. Tratamento Especial LGPD (Privacidade)
+Caso um paciente envie qualquer arquivo de *Mídia* (como Áudio, Imagens, Documentos ou Stickers), o bot ignora o processamento do conteúdo pela rede e retorna uma mensagem protegendo o sigilo, instruindo o usuário a guardar aquele material exclusivo para o encontro presencial/online com o Doutor.
+
+---
+
+## 🛠️ Como Instalar e Configurar o Bot
+
+### 1. Requisitos Prévios
+- Ter o **Python 3.13** (ou superior) instalado.
+- Ter o **MySQL Server** (junto com o MySQL Workbench) em execução local.
+- No MySQL Workbench, execute a query: `CREATE DATABASE psicologo_bot_db;` para criar o banco vazio.
+
+### 2. Instalação das Dependências
+Clone ou abra a pasta do projeto e rode no terminal:
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configuração de Variáveis (Ambiente)
+Na raiz do projeto existe o modelo `.env.example`.
+1. Crie um novo arquivo chamado literalmente apenas: `.env`
+2. Copie o conteúdo do modelo para ele.
+3. Preencha a senha do seu banco de dados (`DB_PASSWORD`).
+4. Preencha seus tokens fornecidos pelo painel Meta for Developers (Token permanente e ID do Telefone).
+5. Defina uma senha em `WEBHOOK_VERIFY_TOKEN` (ex: `token_123`).
+
+---
+
+## ▶️ Como Rodar o Servidor Localmente
+
+Como a infraestrutura utiliza `uvicorn` rodando pelo módulo do Python, abra um terminal e simplesmente insira:
+
+```bash
+python -m uvicorn main:app --reload
+```
+
+*Se tudo der certo, aparecerá a mensagem verde `Application startup complete` indicando que a porta `8000` está aguardando conexões.*
+
+---
+
+## 🛜 Conectando ao Meta (Webhook Externo)
+
+Para que a API Cloud do WhatsApp da sua conta corporativa consiga enviar mensagens para o seu computador (localhost), você deve expor a sua porta 8000. Você pode usar uma ferramenta gratuita como o `localtunnel`:
+
+1. Em um SEGUNDO terminal rodando ao mesmo tempo, digite:
+```bash
+npx localtunnel --port 8000 --subdomain testepsicologo
+```
+2. Pegue o link gerado (ex: `https://testepsicologo.loca.lt`) e coloque no painel do Meta adicionando `/webhook` no final.
+3. Insira lá no painel também o mesmo `WEBHOOK_VERIFY_TOKEN` que você salvou no `.env`.
+4. Valide o Webhook e clique em **Gerenciar campos**, assinando o canal **`messages`**.
+
+Pronto! Seu Chatbot determinístico e voltado para privacidade na área da saúde estará conversando ativamente de acordo com os dados no MySQL.

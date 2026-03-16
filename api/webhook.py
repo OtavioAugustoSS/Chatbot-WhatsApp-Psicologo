@@ -60,8 +60,8 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             whatsapp.enviar_mensagem_texto(telefone, msg_lgpd)
             continue
         
-        if tipo == "text" and texto:
-            print(f"[{telefone}] TEXTO RECEBIDO. Prosseguir para máquina de estados.")
+        if tipo in ["text", "interactive"] and texto:
+            print(f"[{telefone}] MENSAGEM RECEBIDA (text/interactive). Prosseguir para máquina de estados.")
             state_machine.processar_mensagem(telefone, texto)
         
     return {"status": "ok"}

@@ -1,4 +1,4 @@
-# Chatbot WhatsApp - Psicólogo (Dr. Itallo Barcelos de Lima)
+# Chatbot WhatsApp - Psicólogo 
 
 Este é um projeto de chatbot de autoatendimento construído em Python, concebido para automatizar as interações preliminares do consultório de psicologia via WhatsApp.
 

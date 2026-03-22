@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from db.models import User, EstadoUsuario, Lead, Appointment, ModalidadeConsulta
 from services.whatsapp import WhatsAppSender
+from services.email_service import enviar_resumo_lead_email
+import threading
 
 class StateMachine:
     def __init__(self, db: Session, whatsapp: WhatsAppSender):
@@ -44,6 +46,10 @@ class StateMachine:
             self._fluxo_triagem_dia(user, texto)
         elif estado == EstadoUsuario.FAQ_MENU:
             self._fluxo_faq(user, texto)
+        elif estado == EstadoUsuario.PACIENTE_MARCAR:
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "Em breve você poderá ver seus horários aqui! Digite 'menu' para voltar.")
+        elif estado == EstadoUsuario.FINALIZADO:
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "Sua solicitação de triagem já foi concluída! O Doutor entrará em contato em breve.")
         else:
             # Fallback para casos não mapeados
             self._enviar_menu_inicial(user.telefone)
@@ -181,6 +187,16 @@ class StateMachine:
         self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
         user.estado_atual = EstadoUsuario.FINALIZADO
         self.db.commit()
+
+        # Resgata formatado do Enum para exibição
+        mod_str = lead.modalidade.value if lead.modalidade else "Não informada"
+        pref_str = lead.preferencia_horario if lead.preferencia_horario else "Nenhuma"
+
+        # Dispara o envio de E-mail em segundo plano para não dar timeout no Meta
+        threading.Thread(
+            target=enviar_resumo_lead_email, 
+            args=(user.nome, user.telefone, mod_str, pref_str)
+        ).start()
 
     def _fluxo_faq(self, user: User, texto: str):
         if texto == "faq_valor" or texto == "1":

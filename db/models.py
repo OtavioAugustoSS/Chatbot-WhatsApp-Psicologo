@@ -56,3 +56,11 @@ class Appointment(Base):
     criado_em = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="appointments")
+
+class SlotDisponivel(Base):
+    __tablename__ = "slots_disponiveis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    data_hora = Column(DateTime, nullable=False, index=True)
+    is_agendado = Column(Integer, default=0) # 0 = livre, 1 = ocupado
+    criado_em = Column(DateTime, default=datetime.utcnow)

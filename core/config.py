@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_ID: str = ""
     WEBHOOK_VERIFY_TOKEN: str = ""
 
+    EMAIL_REMETENTE: str = ""
+    EMAIL_SENHA: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property

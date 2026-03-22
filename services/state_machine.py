@@ -22,7 +22,7 @@ class StateMachine:
         texto = texto.strip().lower()
 
         # Independente de onde estiver, se digitar algo como voltar/cancelar/oi, volta pro menu inicial
-        if texto in ["voltar", "cancelar", "menu", "oi", "olá", "ola", "start", "começar"]:
+        if texto in ["voltar", "cancelar", "menu", "oi", "olá", "ola", "start", "começar", "menu_voltar"]:
             user.estado_atual = EstadoUsuario.MENU_INICIAL
             self.db.commit()
             self._enviar_menu_inicial(telefone)
@@ -38,8 +38,10 @@ class StateMachine:
             self._fluxo_triagem_nome(user, texto)
         elif estado == EstadoUsuario.TRIAGEM_MODALIDADE:
             self._fluxo_triagem_modalidade(user, texto)
-        elif estado == EstadoUsuario.TRIAGEM_HORARIO:
-            self._fluxo_triagem_horario(user, texto)
+        elif estado == EstadoUsuario.TRIAGEM_TURNO:
+            self._fluxo_triagem_turno(user, texto)
+        elif estado == EstadoUsuario.TRIAGEM_DIA:
+            self._fluxo_triagem_dia(user, texto)
         elif estado == EstadoUsuario.FAQ_MENU:
             self._fluxo_faq(user, texto)
         else:
@@ -77,8 +79,9 @@ class StateMachine:
             self.db.commit()
         elif texto == "menu_paciente" or texto == "2":
             # Aqui entrará a lógica de mostrar horários livres para pacientes recorrentes
-            msg = "Bem-vindo de volta! (Em breve: Mostrar horários livres). Digite 'menu' para voltar."
-            self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
+            msg = "Bem-vindo de volta! (Em breve: Mostrar horários livres)."
+            botoes = [{"id": "menu_voltar", "title": "Voltar ao Menu"}]
+            self.whatsapp.enviar_mensagem_botoes(user.telefone, msg, botoes)
             user.estado_atual = EstadoUsuario.PACIENTE_MARCAR
             self.db.commit()
         elif texto == "menu_faq" or texto == "3":
@@ -125,14 +128,48 @@ class StateMachine:
 
         self.db.commit()
 
-        msg = "Perfeito. Quais são os melhores dias e turnos para você? (Ex: Terça de manhã, Quarta à tarde...)"
-        self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
-        user.estado_atual = EstadoUsuario.TRIAGEM_HORARIO
+        msg = "Perfeito! Em qual turno você tem preferência para ser atendido?"
+        botoes = [
+            {"id": "turno_manha", "title": "Manhã"},
+            {"id": "turno_tarde", "title": "Tarde"},
+            {"id": "turno_noite", "title": "Noite"}
+        ]
+        self.whatsapp.enviar_mensagem_botoes(user.telefone, msg, botoes)
+        user.estado_atual = EstadoUsuario.TRIAGEM_TURNO
         self.db.commit()
 
-    def _fluxo_triagem_horario(self, user: User, texto: str):
+    def _fluxo_triagem_turno(self, user: User, texto: str):
         lead = self.db.query(Lead).filter(Lead.user_id == user.id).order_by(Lead.id.desc()).first()
-        lead.preferencia_horario = texto
+        
+        # Mapeando a resposta do botão para texto legível
+        turnos_map = {
+            "turno_manha": "Manhã",
+            "turno_tarde": "Tarde",
+            "turno_noite": "Noite",
+            "1": "Manhã", "2": "Tarde", "3": "Noite"
+        }
+        
+        turno_escolhido = turnos_map.get(texto)
+        if not turno_escolhido:
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "Por favor, clique em um dos botões de turno (Manhã, Tarde ou Noite).")
+            return
+            
+        lead.preferencia_horario = f"Turno: {turno_escolhido}"
+        self.db.commit()
+        
+        msg = "Ótimo! Você tem preferência por algum dia da semana específico? (Ex: Segunda, Quinta, ou 'Qualquer dia')"
+        self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
+        user.estado_atual = EstadoUsuario.TRIAGEM_DIA
+        self.db.commit()
+
+    def _fluxo_triagem_dia(self, user: User, texto: str):
+        lead = self.db.query(Lead).filter(Lead.user_id == user.id).order_by(Lead.id.desc()).first()
+        # Concatenando o dia com o turno que já estava salvo
+        if lead.preferencia_horario:
+            lead.preferencia_horario += f" | Dia: {texto}"
+        else:
+            lead.preferencia_horario = f"Dia: {texto}"
+            
         self.db.commit()
 
         msg = (
@@ -164,4 +201,8 @@ class StateMachine:
             self.whatsapp.enviar_mensagem_texto(user.telefone, "Opção inválida. Por favor, clique em um dos botões.")
             return
 
-        self.whatsapp.enviar_mensagem_texto(user.telefone, "\nDigite 'menu' ou 'voltar' quando quiser retornar ao menu inicial.")
+        msg_voltar = "Deseja voltar para ver outras opções?"
+        botoes = [
+            {"id": "menu_voltar", "title": "Voltar ao Menu"}
+        ]
+        self.whatsapp.enviar_mensagem_botoes(user.telefone, msg_voltar, botoes)

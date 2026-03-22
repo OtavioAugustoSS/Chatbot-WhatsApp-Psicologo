@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 
+# Armazena os IDs das mensagens já processadas para evitar duplicatas (retries da Meta)
+mensagens_processadas = set()
+
 @router.get("/webhook")
 async def verify_webhook(request: Request):
     """
@@ -45,6 +48,16 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
         tipo = msg.get("tipo")
         telefone = msg.get("telefone")
         texto = msg.get("texto")
+        id_msg = msg.get("id_mensagem")
+        
+        # Sistema Anti-Duplicação do Webhook
+        if id_msg in mensagens_processadas:
+            print(f"[{telefone}] Ignorando mensagem ID {id_msg} (já processada).")
+            continue
+            
+        mensagens_processadas.add(id_msg)
+        if len(mensagens_processadas) > 2000:
+            mensagens_processadas.clear()
         
         print(f"[{telefone}] Nova mensagem tipo '{tipo}': {texto if texto else '<Mídia>'}")
         

@@ -47,7 +47,7 @@ class StateMachine:
         elif estado == EstadoUsuario.FAQ_MENU:
             self._fluxo_faq(user, texto)
         elif estado == EstadoUsuario.PACIENTE_MARCAR:
-            self.whatsapp.enviar_mensagem_texto(user.telefone, "Em breve você poderá ver seus horários aqui! Digite 'menu' para voltar.")
+            self._fluxo_paciente_marcar(user, texto)
         elif estado == EstadoUsuario.FINALIZADO:
             self.whatsapp.enviar_mensagem_texto(user.telefone, "Sua solicitação de triagem já foi concluída! O Doutor entrará em contato em breve.")
         else:
@@ -84,10 +84,25 @@ class StateMachine:
             user.estado_atual = EstadoUsuario.TRIAGEM_NOME
             self.db.commit()
         elif texto == "menu_paciente" or texto == "2":
-            # Aqui entrará a lógica de mostrar horários livres para pacientes recorrentes
-            msg = "Bem-vindo de volta! (Em breve: Mostrar horários livres)."
-            botoes = [{"id": "menu_voltar", "title": "Voltar ao Menu"}]
-            self.whatsapp.enviar_mensagem_botoes(user.telefone, msg, botoes)
+            from services.calendar_service import buscar_horarios_livres
+            
+            # Avisa que vai carregar (pra não dar ilusão de lag)
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "Um momento! Estou sincronizando com a nuvem do Google Agenda para puxar as vagas livres desta semana...")
+            
+            slots = buscar_horarios_livres(dias_frente=7)
+            if not slots:
+                msg = "Poxa, no momento o Dr. Itallo não possui horários livres na agenda nos próximos dias. 😔"
+                self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
+                botoes = [{"id": "menu_voltar", "title": "Voltar ao Menu"}]
+                self.whatsapp.enviar_mensagem_botoes(user.telefone, "Deseja ver outras opções?", botoes)
+                return
+                
+            msg = "Encontrei esses espaços livres na agenda oficial do Doutor! Qual você prefere?"
+            rows = [{"id": f"slot_{slot['id']}", "title": slot["titulo"]} for slot in slots]
+            
+            sessoes = [{"title": "Horários da Semana", "rows": rows}]
+            self.whatsapp.enviar_mensagem_lista(user.telefone, msg, "Abrir Horários", sessoes)
+            
             user.estado_atual = EstadoUsuario.PACIENTE_MARCAR
             self.db.commit()
         elif texto == "menu_faq" or texto == "3":
@@ -197,6 +212,36 @@ class StateMachine:
             target=enviar_resumo_lead_email, 
             args=(user.nome, user.telefone, mod_str, pref_str)
         ).start()
+
+    def _fluxo_paciente_marcar(self, user: User, texto: str):
+        if not texto.startswith("slot_"):
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "⚠️ Por favor, toque no botão 'Abrir Horários' e escolha um dos itens da lista.")
+            return
+            
+        iso_id = texto.replace("slot_", "")
+        
+        from services.calendar_service import criar_evento
+        from services.email_service import enviar_resumo_lead_email
+        import threading
+        
+        # Cria no gcal de forma síncrona
+        nome_marcador = user.nome if user.nome else "Paciente (Retorno)"
+        link = criar_evento(nome_marcador, user.telefone, iso_id)
+        
+        if link:
+            msg = f"🎉 Feito! Sua sessão para as {iso_id[-14:-9]} foi carimbada lá no Google Calendar oficial do Dr. Itallo!"
+            self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
+            
+            # Avisa o doutor no fundo
+            threading.Thread(
+                target=enviar_resumo_lead_email, 
+                args=(nome_marcador, user.telefone, "Já sou paciente (Retorno)", f"Data travada via API: {iso_id}")
+            ).start()
+        else:
+            self.whatsapp.enviar_mensagem_texto(user.telefone, "Um erro bizarro rolou na conexão com o Google. Tente ir no menu e clicar de novo.")
+            
+        user.estado_atual = EstadoUsuario.FINALIZADO
+        self.db.commit()
 
     def _fluxo_faq(self, user: User, texto: str):
         if texto == "faq_valor" or texto == "1":

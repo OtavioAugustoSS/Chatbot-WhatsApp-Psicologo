@@ -29,6 +29,8 @@ def extrair_informacoes_mensagem(payload: dict) -> list:
                         interactive = message.get("interactive", {})
                         if interactive.get("type") == "button_reply":
                             texto = interactive.get("button_reply", {}).get("id")
+                        elif interactive.get("type") == "list_reply":
+                            texto = interactive.get("list_reply", {}).get("id")
                     
                     out_messages.append({
                         "telefone": telefone_origem,
@@ -113,6 +115,39 @@ class WhatsAppSender:
             return True
         except Exception as e:
             print(f"Erro ao enviar botões para {telefone}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print("Detalhes do Erro do Meta:", e.response.text)
+            return False
+
+    def enviar_mensagem_lista(self, telefone: str, texto: str, titulo_botao: str, sessoes: list):
+        """
+        Envia uma mensagem interativa de Lista (List Message). Ideal para mais de 3 opções (até 10).
+        'sessoes' = [{"title": "Exemplo", "rows": [{"id": "1", "title": "A", "description": "B"}]}]
+        """
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": telefone,
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "header": { "type": "text", "text": "🗓️ Horários Disponíveis" },
+                "body": { "text": texto },
+                "footer": { "text": "Clique no botão abaixo para ver as opções" },
+                "action": {
+                    "button": titulo_botao,
+                    "sections": sessoes
+                }
+            }
+        }
+        
+        try:
+            resposta = requests.post(self.url, headers=self.headers, json=payload)
+            resposta.raise_for_status()
+            print(f"Mensagem de LISTA enviada para {telefone}.")
+            return True
+        except Exception as e:
+            print(f"Erro ao enviar Lista para {telefone}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 print("Detalhes do Erro do Meta:", e.response.text)
             return False

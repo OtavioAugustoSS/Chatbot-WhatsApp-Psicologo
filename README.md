@@ -13,6 +13,8 @@ O foco deste bot é ser **100% determinístico** utilizando uma Máquina de Esta
 - **Banco de Dados:** MySQL 8.0+
 - **ORM:** SQLAlchemy (usando `pymysql` e `cryptography`)
 - **Mensageria:** API Oficial do Meta (WhatsApp Cloud API) via modelo de Webhooks.
+- **Nuvem:** Google Cloud Platform (Google Calendar API conectada via Service Account)
+- **Background Jobs:** APScheduler (Threads invisíveis para envio de Lembretes)
 
 > **Arquitetura modular:** O código isola a lógica de negócio (State Machine) das rotas HTTP (Webhook), permitindo que a mesma máquina de estados atenda a outras integrações no futuro (como a API do Telegram).
 
@@ -34,6 +36,17 @@ Coleta, passo a passo, os dados vitais para os novos pacientes (Nome -> Preferê
 
 ### 4. Tratamento Especial LGPD (Privacidade)
 Caso um paciente envie qualquer arquivo de *Mídia* (como Áudio, Imagens, Documentos ou Stickers), o bot ignora o processamento do conteúdo pela rede e retorna uma mensagem protegendo o sigilo, instruindo o usuário a guardar aquele material exclusivo para o encontro presencial/online com o Doutor.
+
+### 5. Agendamento em Tempo Real (Google Calendar)
+Através de **Mensagens de Lista (Interactive Lists)** da Meta, o paciente recorrente clica num menu dentro do próprio WhatsApp e escolhe um de 10 horários livres mapeados dinamicamente da agenda oficial do Doutor na Google. O bot insere a consulta oficial lá na nuvem (com 50 minutos de duração) e salva na base local.
+
+### 6. Sistema de Notificação SMTP (E-mail Assíncrono)
+Para cada fluxo finalizado ou consulta agendada pelo WhatsApp, o servidor dispara "no escuro" (via `threading`) um e-mail estruturado em HTML para a conta do consultório informando os dados vitais ou turnos coletados, garantindo que a resposta ao paciente no WhatsApp não seja travada pela lentidão na rede SMTP.
+
+### 7. Despertador Fantasma de Lembretes Automáticos
+Um Loop baseado em `APScheduler` analisa a agenda silenciosamente a cada 5 minutos procurando as próximas consultas. 
+- **Lembrete de 24 Horas:** Envia uma Message interativa nativa alertando o paciente sobre o compromisso com botões de confirmar/reagendar.
+- **Lembrete de 1 Hora:** Manda preparo logístico na porta da sessão!
 
 ---
 
@@ -57,6 +70,8 @@ Na raiz do projeto existe o modelo `.env.example`.
 3. Preencha a senha do seu banco de dados (`DB_PASSWORD`).
 4. Preencha seus tokens fornecidos pelo painel Meta for Developers (Token permanente e ID do Telefone).
 5. Defina uma senha em `WEBHOOK_VERIFY_TOKEN` (ex: `token_123`).
+6. Requisite suas credenciais JSON de acesso Cloud na plataforma do **Google Cloud (Service Accounts)** e jogue o arquivo raiz com o nome obrigatório de `credentials.json`.
+7. Configure o `EMAIL_REMETENTE`, a sua `EMAIL_SENHA` de Aplicativo Google (16 Letras), e o ID Master do dono do calendário em `CALENDAR_ID`.
 
 ---
 

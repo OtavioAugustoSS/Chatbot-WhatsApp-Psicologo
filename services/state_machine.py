@@ -229,6 +229,20 @@ class StateMachine:
         link = criar_evento(nome_marcador, user.telefone, iso_id)
         
         if link:
+            # Salvar Appointment no banco de dados para os Lembretes do APScheduler funcionarem
+            from db.models import Appointment, ModalidadeConsulta
+            from datetime import datetime, timezone
+            
+            # dt_obj em formato UTC puro para gravar no BD MySQL
+            dt_obj_utc = datetime.fromisoformat(iso_id).astimezone(timezone.utc).replace(tzinfo=None)
+            
+            novo_agendamento = Appointment(
+                user_id=user.id,
+                data_hora=dt_obj_utc,
+                modalidade=ModalidadeConsulta.PRESENCIAL
+            )
+            self.db.add(novo_agendamento)
+            
             msg = f"🎉 Feito! Sua sessão para as {iso_id[-14:-9]} foi carimbada lá no Google Calendar oficial do Dr. Itallo!"
             self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
             

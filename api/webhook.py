@@ -67,7 +67,7 @@ async def receive_message(request: Request, db: Session = Depends(get_db)):
             msg_lgpd = (
                 "Recebi seu arquivo/áudio! 🤖\nComo sou apenas o assistente virtual, "
                 "peço que guarde esses detalhes em texto ou compartilhe diretamente "
-                "com o Dr. Itallo no momento da sua sessão.\n\n"
+                "com o Dr. Psicólogo no momento da sua sessão.\n\n"
                 "Para continuarmos nosso agendamento, por favor, me envie apenas mensagens de *texto*."
             )
             whatsapp.enviar_mensagem_texto(telefone, msg_lgpd)

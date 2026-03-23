@@ -58,7 +58,7 @@ class StateMachine:
 
     def _fluxo_nova_interacao(self, user: User):
         msg_boas_vindas = (
-            "Olá! Sou o assistente virtual do Dr. Itallo Barcelos de Lima.\n\n"
+            "Olá! Sou o assistente virtual do Dr. Psicólogo.\n\n"
             "⚠️ *Importante:* este chat é apenas para agendamentos e dúvidas. "
             "Se você estiver em crise ou precisando de ajuda imediata, por favor, ligue para o CVV (188) ou vá ao pronto-socorro mais próximo."
         )
@@ -91,7 +91,7 @@ class StateMachine:
             
             slots = buscar_horarios_livres(dias_frente=7)
             if not slots:
-                msg = "Poxa, no momento o Dr. Itallo não possui horários livres na agenda nos próximos dias. 😔"
+                msg = "Poxa, no momento o Dr. Psicólogo não possui horários livres na agenda nos próximos dias. 😔"
                 self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
                 botoes = [{"id": "menu_voltar", "title": "Voltar ao Menu"}]
                 self.whatsapp.enviar_mensagem_botoes(user.telefone, "Deseja ver outras opções?", botoes)
@@ -195,7 +195,7 @@ class StateMachine:
 
         msg = (
             "✅ Suas preferências foram anotadas!\n"
-            "Vou repassar as informações ao Dr. Itallo e ele (ou sua secretaria) "
+            "Vou repassar as informações ao Dr. Psicólogo e ele (ou sua secretaria) "
             "entrará em contato em breve para confirmar seu horário exato.\n\n"
             "Agradecemos o contato!"
         )
@@ -243,7 +243,7 @@ class StateMachine:
             )
             self.db.add(novo_agendamento)
             
-            msg = f"🎉 Feito! Sua sessão para as {iso_id[-14:-9]} foi carimbada lá no Google Calendar oficial do Dr. Itallo!"
+            msg = f"🎉 Feito! Sua sessão para as {iso_id[-14:-9]} foi carimbada lá no Google Calendar oficial do Dr. Psicólogo!"
             self.whatsapp.enviar_mensagem_texto(user.telefone, msg)
             
             # Avisa o doutor no fundo

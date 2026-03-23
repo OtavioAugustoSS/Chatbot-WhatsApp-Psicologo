@@ -44,7 +44,7 @@ def verificar_lembretes():
                 
             # Lembrete de 1 hora (envia se faltar entre 55 e 65 minutos)
             elif appt.lembrete_1h_enviado == 0 and 55 <= minutos_faltando <= 65:
-                msg = f"Oi! Faltam apenas 60 minutinhos para nossa consulta marcada para às {str_hora}! O Dr. Itallo já está se preparando para te atender na clínica."
+                msg = f"Oi! Faltam apenas 60 minutinhos para nossa consulta marcada para às {str_hora}! O Dr. Psicólogo já está se preparando para te atender na clínica."
                 whatsapp.enviar_mensagem_texto(appt.user.telefone, msg)
                 appt.lembrete_1h_enviado = 1
                 
